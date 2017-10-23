@@ -1,3 +1,10 @@
+# Update
+
+
+S2/regioncoverer.go
+S2/cellid.go
+S2/cellunion.go
+
 # Overview
 
 This is a library for manipulating geometric shapes. Unlike many geometry
