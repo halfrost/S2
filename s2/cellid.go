@@ -174,7 +174,7 @@ func (ci CellID) immediateParent() CellID {
 // isFace returns whether this is a top-level (face) cell.
 func (ci CellID) isFace() bool { return uint64(ci)&(lsbForLevel(0)-1) == 0 }
 
-// lsb returns the least significant bit that is set. 最低有效位
+// lsb returns the least significant bit that is set.
 func (ci CellID) lsb() uint64 { return uint64(ci) & -uint64(ci) }
 
 // Children returns the four immediate children of this cell.
@@ -217,19 +217,25 @@ func (ci CellID) VertexNeighbors(level int) []CellID {
 	size := halfSize << 1
 	f, i, j, _ := ci.faceIJOrientation()
 
+	fmt.Printf("halfsize 原始的值 = %v-%b\n", halfSize, halfSize)
 	var isame, jsame bool
 	var ioffset, joffset int
+
 	if i&halfSize != 0 {
+		// 位于后边一列，所以偏移量要加上一个格子
 		ioffset = size
 		isame = (i + size) < maxSize
 	} else {
+		// 位于左边一列，所以偏移量要减去一个格子
 		ioffset = -size
 		isame = (i - size) >= 0
 	}
 	if j&halfSize != 0 {
+		// 位于上边一行，所以偏移量要加上一个格子
 		joffset = size
 		jsame = (j + size) < maxSize
 	} else {
+		// 位于下边一行，所以偏移量要减去一个格子
 		joffset = -size
 		jsame = (j - size) >= 0
 	}
@@ -280,21 +286,26 @@ func (ci CellID) AllNeighbors(level int) []CellID {
 		} else {
 			sameFace = true
 			// Top and bottom neighbors.
+			fmt.Printf("【1】i+k, j-nbrSize | k = %d , nbrSize = %d , sameFace = %v , %v | cell = %d\n", k, nbrSize, sameFace, (j-size >= 0), cellIDFromFaceIJSame(face, i+k, j-nbrSize, j-size >= 0).Parent(level))
 			neighbors = append(neighbors, cellIDFromFaceIJSame(face, i+k, j-nbrSize,
 				j-size >= 0).Parent(level))
+			fmt.Printf("【2】i+k, j+size | k = %d , size = %d , sameFace = %v , %v | cell = %d\n", k, size, sameFace, (j+size < maxSize), cellIDFromFaceIJSame(face, i+k, j+size, j+size < maxSize).Parent(level))
 			neighbors = append(neighbors, cellIDFromFaceIJSame(face, i+k, j+size,
 				j+size < maxSize).Parent(level))
 		}
 
 		// Left, right, and diagonal neighbors.
+		fmt.Printf("【3】i-nbrSize, j+k | k = %d , nbrSize = %d , sameFace = %v , %v | cell = %d\n", k, nbrSize, sameFace, (sameFace && i-size >= 0), cellIDFromFaceIJSame(face, i-nbrSize, j+k, sameFace && i-size >= 0).Parent(level))
 		neighbors = append(neighbors, cellIDFromFaceIJSame(face, i-nbrSize, j+k,
 			sameFace && i-size >= 0).Parent(level))
+		fmt.Printf("【4】i+size, j+k | k = %d , size = %d , sameFace = %v , %v | cell = %d\n", k, size, sameFace, (sameFace && i+size < maxSize), cellIDFromFaceIJSame(face, i+size, j+k, sameFace && i+size < maxSize).Parent(level))
 		neighbors = append(neighbors, cellIDFromFaceIJSame(face, i+size, j+k,
 			sameFace && i+size < maxSize).Parent(level))
-
+		// 这里的判断条件有2个用途，一是防止32-bit溢出，二是循环的退出条件，大于size以后也就不用再找了
 		if k >= size {
 			break
 		}
+		fmt.Printf("目前循环次数是 %d\n", k/nbrSize)
 	}
 
 	return neighbors
@@ -482,23 +493,43 @@ func (ci CellID) faceSiTi() (face int, si, ti uint32) {
 
 // faceIJOrientation uses the global lookupIJ table to unfiddle the bits of ci.
 func (ci CellID) faceIJOrientation() (f, i, j, orientation int) {
+	fmt.Printf("cellID = %d - %b\n", ci, ci)
 	f = ci.Face()
+	fmt.Printf("cellID face = %d - %b\n", f, f)
+
 	orientation = f & swapMask
+	fmt.Printf("cellID orientation = %d - %b\n", orientation, orientation)
 	nbits := maxLevel - 7*lookupBits // first iteration
 
+	fmt.Println("-------------------------------------------------------")
 	for k := 7; k >= 0; k-- {
+		fmt.Printf("循环前 cellID orientation = %d - %b | nbits = %d - %b |\n", orientation, orientation, nbits, nbits)
+		fmt.Printf("循环中0 cellID 移动 = %b | & 操作数 = %b | 最后结果 = %b |\n", int(uint64(ci)>>uint64(k*2*lookupBits+1)), ((1 << uint((2 * nbits))) - 1), (int(uint64(ci)>>uint64(k*2*lookupBits+1))&((1<<uint((2*nbits)))-1))<<2)
+
 		orientation += (int(uint64(ci)>>uint64(k*2*lookupBits+1)) & ((1 << uint((2 * nbits))) - 1)) << 2
+
+		fmt.Printf("循环中1 cellID orientation = %d - %b | nbits = %d - %b |\n", orientation, orientation, nbits, nbits)
 		orientation = lookupIJ[orientation]
+		fmt.Printf("循环中2 cellID orientation = %d - %b | nbits = %d - %b |\n", orientation, orientation, nbits, nbits)
+
+		fmt.Printf("循环中3 i = %d - %b | j = %d - %b |\n", i, i, j, j)
+
 		i += (orientation >> (lookupBits + 2)) << uint(k*lookupBits)
 		j += ((orientation >> 2) & ((1 << lookupBits) - 1)) << uint(k*lookupBits)
+		fmt.Printf("循环中4 i = %d - %b | j = %d - %b |\n", i, i, j, j)
 		orientation &= (swapMask | invertMask)
+		fmt.Printf("循环中5 cellID orientation = %d - %b | nbits = %d - %b |\n", orientation, orientation, nbits, nbits)
 		nbits = lookupBits // following iterations
+		fmt.Println("-------------------------------------------------------")
 	}
-
+	// 下面这个判断还没有看懂
 	if ci.lsb()&0x1111111111111110 != 0 {
+		fmt.Printf("异或前| orientation = %d - %b |\n", orientation, orientation)
 		orientation ^= swapMask
+		fmt.Printf("异或后| orientation = %d - %b |\n", orientation, orientation)
 	}
 
+	fmt.Printf("cellID face = %d - %b | orientation = %d - %b | i = %d - %b | j = %d - %b |\n", f, f, orientation, orientation, i, i, j, j)
 	return
 }
 
@@ -511,29 +542,46 @@ func cellIDFromFaceIJ(f, i, j int) CellID {
 	// is necessary in order for all faces to have a right-handed
 	// coordinate system.
 	bits := f & swapMask
+	//fmt.Printf("外层 f = %d - %b | bits = %d - %b |\n", f, f, bits, bits)
 	// Each iteration maps 4 bits of "i" and "j" into 8 bits of the Hilbert
 	// curve position.  The lookup table transforms a 10-bit key of the form
 	// "iiiijjjjoo" to a 10-bit value of the form "ppppppppoo", where the
 	// letters [ijpo] denote bits of "i", "j", Hilbert curve position, and
 	// Hilbert curve orientation respectively.
+	//fmt.Printf("************************************\n")
 	for k := 7; k >= 0; k-- {
 		mask := (1 << lookupBits) - 1
+		//fmt.Printf("循环中0 mask = %d - %b | i = %d - %b | j = %d - %b |\n", mask, mask, i, i, j, j)
+		//fmt.Printf("循环中1 bits = %d - %b |\n", bits, bits)
 		bits += int((i>>uint(k*lookupBits))&mask) << (lookupBits + 2)
+		//fmt.Printf("循环中2 bits = %d - %b | i 移动 = %d - %b |\n", bits, bits, int((i>>uint(k*lookupBits))&mask)<<(lookupBits+2), int((i>>uint(k*lookupBits))&mask)<<(lookupBits+2))
 		bits += int((j>>uint(k*lookupBits))&mask) << 2
+		//fmt.Printf("循环中3 bits = %d - %b | j 移动 = %d - %b |\n", bits, bits, int((j>>uint(k*lookupBits))&mask)<<2, int((j>>uint(k*lookupBits))&mask)<<2)
 		bits = lookupPos[bits]
+		//fmt.Printf("循环中4 bits = %d - %b |\n", bits, bits)
+		//fmt.Printf("循环中5 n = %d - %b |\n", n, n)
 		n |= uint64(bits>>2) << (uint(k) * 2 * lookupBits)
+		//fmt.Printf("循环中6 bits = %d - %b |\n", n, n)
 		bits &= (swapMask | invertMask)
+		// fmt.Printf("循环中7 bits = %d - %b |\n", bits, bits)
+		// fmt.Printf("************************************\n")
 	}
+	//fmt.Printf("循环外 = %d - %b |\n", n*2+1, n*2+1)
 	return CellID(n*2 + 1)
 }
 
 func cellIDFromFaceIJWrap(f, i, j int) CellID {
+	// 1.
 	// Convert i and j to the coordinates of a leaf cell just beyond the
 	// boundary of this face.  This prevents 32-bit overflow in the case
 	// of finding the neighbors of a face cell.
+	fmt.Printf("#########################\n")
+	fmt.Printf("i,j 原始的值 = %v-%b | %v-%b\n", i, i, j, j)
 	i = clamp(i, -1, maxSize)
 	j = clamp(j, -1, maxSize)
+	fmt.Printf("i,j 变换后的值 = %v-%b | %v-%b\n", i, i, j, j)
 
+	// 2.
 	// We want to wrap these coordinates onto the appropriate adjacent face.
 	// The easiest way to do this is to convert the (i,j) coordinates to (x,y,z)
 	// (which yields a point outside the normal face boundary), and then call
@@ -549,12 +597,22 @@ func cellIDFromFaceIJWrap(f, i, j int) CellID {
 	// coordinates enough so that we end up in the wrong leaf cell.
 	const scale = 1.0 / maxSize
 	limit := math.Nextafter(1, 2)
+	fmt.Printf("limit 的值 = %v-%b \n", limit, limit)
 	u := math.Max(-limit, math.Min(limit, scale*float64((i<<1)+1-maxSize)))
 	v := math.Max(-limit, math.Min(limit, scale*float64((j<<1)+1-maxSize)))
 
+	fmt.Printf("u，v 的值 = %v-%b | %v-%b\n", u, u, v, v)
+
 	// Find the leaf cell coordinates on the adjacent face, and convert
 	// them to a cell id at the appropriate level.
+	// 3.
+	fmt.Printf("f，u，v 的原始值 = %v-%b | %v-%b | %v-%b\n", f, f, u, u, v, v)
+
 	f, u, v = xyzToFaceUV(faceUVToXYZ(f, u, v))
+
+	fmt.Printf("f，u，v 的变换以后的值 = %v-%b | %v-%b | %v-%b\n", f, f, u, u, v, v)
+
+	fmt.Printf("#########################\n")
 	return cellIDFromFaceIJ(f, stToIJ(0.5*(u+1)), stToIJ(0.5*(v+1)))
 }
 
@@ -586,6 +644,7 @@ func ijToSTMin(i int) float64 {
 
 // stToIJ converts value in ST coordinates to a value in IJ coordinates.
 func stToIJ(s float64) int {
+	//fmt.Printf("ST的转换 = %v\n", clamp(int(math.Floor(maxSize*s)), 0, maxSize-1))
 	return clamp(int(math.Floor(maxSize*s)), 0, maxSize-1)
 }
 
@@ -600,8 +659,10 @@ func stToIJ(s float64) int {
 // is always true.
 func cellIDFromPoint(p Point) CellID {
 	f, u, v := xyzToFaceUV(r3.Vector{p.X, p.Y, p.Z})
+	//fmt.Printf("f = %v,u = %v,v = %v\n", f, u, v)
 	i := stToIJ(uvToST(u))
 	j := stToIJ(uvToST(v))
+	//fmt.Printf("i = %d - %b,j = %d - %b\n", i, i, j, j)
 	return cellIDFromFaceIJ(f, i, j)
 }
 
@@ -658,10 +719,14 @@ func init() {
 
 // initLookupCell initializes the lookupIJ table at init time.
 func initLookupCell(level, i, j, origOrientation, pos, orientation int) {
+
 	if level == lookupBits {
 		ij := (i << lookupBits) + j
 		lookupPos[(ij<<2)+origOrientation] = (pos << 2) + orientation
 		lookupIJ[(pos<<2)+origOrientation] = (ij << 2) + orientation
+		if (pos<<2)+origOrientation == 55 {
+			fmt.Printf("我要找的结果 lookupIJ[55] = i = %d - %b | j = %d - %b | pos =  %d - %b 左移2位 %d - %b | origOrientation =  %d - %b | cellID = %d - %b | level = %d\n", i, i, j, j, pos, pos, pos<<2, pos<<2, origOrientation, origOrientation, (ij<<2)+orientation, (ij<<2)+orientation, level)
+		}
 		return
 	}
 
@@ -670,11 +735,16 @@ func initLookupCell(level, i, j, origOrientation, pos, orientation int) {
 	j <<= 1
 	pos <<= 2
 	r := posToIJ[orientation]
+
 	initLookupCell(level, i+(r[0]>>1), j+(r[0]&1), origOrientation, pos, orientation^posToOrientation[0])
 	initLookupCell(level, i+(r[1]>>1), j+(r[1]&1), origOrientation, pos+1, orientation^posToOrientation[1])
 	initLookupCell(level, i+(r[2]>>1), j+(r[2]&1), origOrientation, pos+2, orientation^posToOrientation[2])
 	initLookupCell(level, i+(r[3]>>1), j+(r[3]&1), origOrientation, pos+3, orientation^posToOrientation[3])
 }
+
+// 这里两行是很关键的两行。这里就是针对希尔伯特曲线的方向进行换算的。
+// posToOrientation 数组里面装的原始的值是 [01，00，00，11]，这个4个数值并不是随便初始化的。其实这个对应的就是 图0 中4个小方块接下来再划分的方向。图0 中0号的位置下一个图的方向应该是图1，即01；图0 中1号的位置下一个图的方向应该是图0，即00；图0 中2号的位置下一个图的方向应该是图0，即00；图0 中3号的位置下一个图的方向应该是图3，即11 。这就是初始化 posToOrientation 数组里面的玄机了。
+// 再看看每次入参都异或 posToOrientation 数组。这样就能保证每次都能根据上一次的原始的方向推算出当前的 pos 所在的方向。
 
 // CommonAncestorLevel returns the level of the common ancestor of the two S2 CellIDs.
 func (ci CellID) CommonAncestorLevel(other CellID) (level int, ok bool) {
@@ -709,6 +779,8 @@ func findMSBSetNonZero64(bits uint64) int {
 }
 
 const deBruijn64 = 0x03f79d71b4ca8b09
+
+// 0000 0011 1111 0111 1001 1101 0111 0001 1011 0100 1100 1010 1000 1011 0000 1001
 const digitMask = uint64(1<<64 - 1)
 
 var deBruijn64Lookup = []byte{
