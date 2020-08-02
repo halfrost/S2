@@ -1,0 +1,34 @@
+<header class="text-gray-700 body-font sticky top-0 bg-white z-10">
+  <div
+    class="container mx-auto flex flex-wrap p-5 flex-col md:flex-row items-center"
+  >
+    <a
+      class="flex title-font font-medium items-center text-gray-900 mb-4 md:mb-0"
+      href="{{ .Site.BaseURL }}"
+    >
+    <svg t="1596350587052" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="20958" width="24" height="24"><path d="M938.558 0.118H192.074c-11.81 0-21.34 9.56-21.34 21.34a21.328 21.328 0 0 0 21.34 21.338h746.484c11.778 0 21.338-9.56 21.338-21.338 0-11.78-9.56-21.34-21.338-21.34z" fill="#DA4453" p-id="20959"></path><path d="M959.896 1002.574c0 11.78-9.56 21.308-21.338 21.308H192.074c-11.81 0-21.34-9.53-21.34-21.308V106.782c0-11.78 9.53-21.34 21.34-21.34h746.484c11.778 0 21.338 9.56 21.338 21.34v895.792z" fill="#ED5564" p-id="20960"></path><path d="M320.044 597.324l127.97-213.294 127.97 213.294z" fill="#F6BB42" p-id="20961"></path><path d="M426.676 597.324l170.616-298.588 170.65 298.588z" fill="#FFCE54" p-id="20962"></path><path d="M629.286 853.266h-170.618a21.328 21.328 0 0 1-21.338-21.34c0-11.778 9.56-21.306 21.338-21.306h170.618c11.778 0 21.34 9.53 21.34 21.306a21.332 21.332 0 0 1-21.34 21.34zM714.61 767.942H373.344a21.294 21.294 0 0 1-21.306-21.308c0-11.778 9.53-21.338 21.306-21.338h341.266c11.778 0 21.34 9.56 21.34 21.338s-9.564 21.308-21.34 21.308z" fill="#434A54" p-id="20963"></path><path d="M128.088 0.118c-35.368 0-63.984 28.65-63.984 63.986v895.792c0 35.368 28.618 63.986 63.984 63.986h63.986V0.118H128.088z" fill="#656D78" p-id="20964"></path><path d="M148.802 42.794c-12.124 0-21.964 9.53-21.964 21.308 0 11.808 9.842 21.338 21.964 21.338h789.756V42.794H148.802z" fill="#F5F7FA" p-id="20965"></path></svg>
+    <span class="ml-3 text-xl">{{ .Site.Params.Author }}</span>
+    </a>
+    <nav
+      class="md:ml-auto flex flex-wrap items-center text-base justify-center"
+    >
+      {{ if eq .Site.Params.hideAutoMenu false }}
+      <a
+        class="mr-2 px-2 rounded cursor-pointer select-none hover:text-gray-900 show-all"
+        >All</a
+      >
+      {{ range .Site.Sections }}
+      <a
+        class="mr-2 px-2 rounded cursor-pointer select-none hover:text-gray-900 filter-{{lower .Title}}"
+        >{{.Title}}</a
+      >
+      {{ end }}{{ end }}
+      {{ range .Site.Menus.main }}
+      <a
+      href="{{ .URL }}"
+      class="mr-2 px-2 rounded cursor-pointer select-none hover:text-gray-900"
+      >{{ .Name }}</a>
+      {{ end }}
+    </nav>
+  </div>
+</header>

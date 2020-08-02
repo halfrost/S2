@@ -1,0 +1,23 @@
+baseURL = "https://books.halfrost.com"
+languageCode = "en-us"
+title = "Books"
+Paginate = 1000
+googleAnalytics = "UA-82753806-5"
+theme = "showcase"
+disableKinds = ["taxonomy", "taxonomyTerm", "RSS"]
+
+[params]
+  author = "halfrost"
+  description = "Minimal, one page, theme for showcasing your work"
+  message = ""
+  hideAutoMenu = false
+
+[[menu.main]]
+  name = "Github"
+  url = "https://github.com/halfrost"
+
+[social]
+  facebook = "https://www.facebook.com/halffrost/"
+  twitter = "https://twitter.com/halffrost"
+  instagram = "https://www.instagram.com/halfrost_/"
+  linkedin = "https://www.linkedin.com/in/half-frost/"
